@@ -2,11 +2,22 @@ import express from "express"; // to set up basic HTTP server
 import http from "http"; // for creating a raw HTTP server which socket.io will hook into
 import { Server } from "socket.io"; // for real-time communication between server and client
 import cors from "cors"; // to allow requests from frontend (built on React)
+import { Message } from "./models/Message";
+import { connectDB } from "./config/db";
+
 
 const app = express(); //creates an express application
 const server = http.createServer(app); //sets up an HTTP server afterwards
 
 app.use(cors()); //this allows cross-origin requests for frontend
+
+
+connectDB().then(() => {
+  // only starts the server on succesful 
+  server.listen(3000, () => {
+    console.log("🚀 Server running on http://localhost:3000");
+  });
+});
 
 const io = new Server(server, {   //socket.io initialization, attaching it to server
     cors: {
@@ -18,19 +29,22 @@ const io = new Server(server, {   //socket.io initialization, attaching it to se
 io.on("connection", (socket) => {  //listens for new connections and logs it
     console.log(`New client connected:  ${socket.id}`);
 
-    socket.on("send_message",(data) => {    //listens for new messages, broadcasts it to all other clients
-        console.log("Message received from client:", data);
-        
-        socket.broadcast.emit("receive_message", data);
+    socket.on("send_message", async(msg: string) => {    //listens for new messages, broadcasts it to all other clients
+        const saved = await Message.create({ content: msg });
+        io.emit("receive_message", saved.content);
     });
+
+    socket.on("join", async () => { //on connecting to server, sends chat history (50 messages)
+        console.log(`Socket ${socket.id} joined the chat`); //this will display twice with different socket IDs due to react strictmode
+        const messages = await Message.find().sort({ timestamp: 1}).limit(50); //limited to 50 messages
+        messages.forEach((m) => {
+            socket.emit("receive_message", m.content);  //this maps out received messages
+        });
+    });
+
 
     socket.on("disconnect", () => {  //listens for client disconnects then logs it it
         console.log(`Client disconnected: ${socket.id}`);
     });
 });
 
-//here we start the server
-const PORT = 3000; //port we default to
-server.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-});

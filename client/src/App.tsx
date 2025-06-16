@@ -9,6 +9,9 @@ function App() {
     const[chat, setChat] = useState<string[]>([]); //chat is empty on mount
 
     useEffect(() => {
+      const socket = io("http://localhost:3000"); //in useeffect to prevent double render due to react strictmode
+        socket.emit("join");
+
         socket.on("receive_message", (data: string) => { //event listener for messages from server
             setChat((prev) => [...prev, data]); //adds received message to the chat array, making sure to preserve previous messages
         });
@@ -16,8 +19,8 @@ function App() {
         return () => {
             socket.off("receive_message"); //cleanup
         };
-    }, []); //runs function on component mount
-
+    }, []); 
+    
 
     const sendMessage = (e: React.FormEvent) => {
         e.preventDefault();
@@ -29,7 +32,7 @@ function App() {
     };
 
     return(
-    <div className="p-8 font-sans">
+    <div className="p-8 font-cobane">
       <h1 className="text-2xl font-bold mb-4">💬 Lounge Chat</h1>
       <form onSubmit={sendMessage} className="flex gap-4">
         <input
