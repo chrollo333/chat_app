@@ -30,7 +30,7 @@ io.on("connection", (socket) => {  //listens for new connections and logs it
 });
 
 //here we start the server
-const PORT = 3000; //port most people default to
+const PORT = 3000; //port we default to
 server.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
 });

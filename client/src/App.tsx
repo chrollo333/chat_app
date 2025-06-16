@@ -1,35 +1,60 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useEffect, useState } from "react";
+import { io } from "socket.io-client";
+import type { Socket } from "socket.io-client";
+
+const socket = io("http://localhost:3000");
 
 function App() {
-  const [count, setCount] = useState(0)
+    const[message, setMessage] = useState(""); //message is empty on mount
+    const[chat, setChat] = useState<string[]>([]); //chat is empty on mount
 
-  return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
+    useEffect(() => {
+        socket.on("receive_message", (data: string) => { //event listener for messages from server
+            setChat((prev) => [...prev, data]); //adds received message to the chat array, making sure to preserve previous messages
+        });
+
+        return () => {
+            socket.off("receive_message"); //cleanup
+        };
+    }, []); //runs function on component mount
+
+
+    const sendMessage = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (message.trim()) {
+            socket.emit("send_message", message);
+            setChat((prev) => [...prev, message]);
+            setMessage("");
+        }
+    };
+
+    return(
+    <div className="p-8 font-sans">
+      <h1 className="text-2xl font-bold mb-4">💬 Lounge Chat</h1>
+      <form onSubmit={sendMessage} className="flex gap-4">
+        <input
+          type="text"
+          value={message}
+          placeholder="Type a message..."
+          onChange={(e) => setMessage(e.target.value)}
+          className="border p-2 w-80 rounded"
+        />
+        <button
+          type="submit"
+          className="bg-blue-500 hover:bg-blue-600 text-white rounded px-4 py-2"
+        >
+          Send
         </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
-}
+      </form>
 
-export default App
+      <ul className="mt-8 space-y-2">
+        {chat.map((msg, index) => (
+          <li key={index} className="bg-gray-100 p-2 rounded">
+            {msg}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+export default App;
