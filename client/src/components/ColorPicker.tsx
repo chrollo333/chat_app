@@ -1,21 +1,19 @@
 import { SketchPicker } from 'react-color';
-import { useState } from 'react';
 import axios from "axios";
 import { useSocket } from "../context/SocketContext";
 
 interface Props {
     username: string;
+    color: string;
+    setColor: (color: string) => void;
 }
 
-function ColorPicker({ username }: Props) {
+
+function ColorPicker({ username, color, setColor }: Props) {
     const socket = useSocket();
-    const [color, setColor] = useState("#ffffff"); //defaults to white
-    const [status, setStatus] = useState("");
 
     const handleChangeComplete = async (newColor: any) => {
-        setColor(newColor.hex);
-
-
+        setColor(newColor.hex); 
 
         try {
             const res = await axios.post("http://localhost:3000/api/user/color", {
@@ -24,26 +22,23 @@ function ColorPicker({ username }: Props) {
             });
 
             if (res.status === 200) {
-                setStatus("✅ Color saved!");
                 if (socket) {
                     socket.emit("update_color", { username, color: newColor.hex });
                 }
             } else {
-                setStatus("❌ Failed to save.");
+                console.error("Failed to save color on backend");
             }
         } catch (err) {
-            console.error(err);
-            setStatus("❌ Error saving color.");
+            console.error("Error saving color:", err);
         }
-    }
+    };
 
     return (
         <div className="p-4 bg-zinc-800 rounded-lg text-white w-fit">
             <p className="mb-2 text-sm">Choose your chat color:</p>
             <SketchPicker color={color} onChangeComplete={handleChangeComplete} />
-            <p className="mt-2 text-sm">{status}</p>
         </div>
     );
-};
+}
 
 export default ColorPicker;

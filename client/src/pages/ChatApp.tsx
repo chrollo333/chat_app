@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSocket } from "../context/SocketContext";
+import ColorPicker from "../components/ColorPicker";
 
 interface Props {
     username: string;
@@ -25,6 +26,7 @@ function ChatApp({ username }: Props) {
         // join room / announce username
         socket.emit("join", username);
 
+        //handlers for receiveing messages and updating colors
         const handleReceiveMessage = (data: ChatMessage) => {
             setChat((prev) => [...prev, data]);
             setUserColors((prev) => ({ ...prev, [data.sender]: data.color }));
@@ -65,18 +67,6 @@ function ChatApp({ username }: Props) {
         }
     };
 
-    // When user changes color, emit update_color to server
-    const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setMyColor(e.target.value); // update color locally to reflect UI immediately
-    };
-
-    const handleColorBlur = () => {
-        if (socket) {
-            socket.emit("update_color", { username, color: myColor }); // send update only when user leaves the input to prevent network lag
-        }
-    };
-
-
     return (
         <div className="min-h-screen bg-zinc-900 flex flex-col items-center px-4 py-6">
             <div className="p-8 font-cobane text-white w-[30%]">
@@ -84,20 +74,8 @@ function ChatApp({ username }: Props) {
                     💬 Lounge Chat
                 </h1>
 
-                {/* Color picker */}
-                <div className="mb-4">
-                    <label htmlFor="colorPicker" className="mr-2">
-                        Your Chat Color:
-                    </label>
-                    <input
-                        type="color"
-                        id="colorPicker"
-                        value={myColor}
-                        onChange={handleColorChange} //this updates local state immediately
-                        onBlur={handleColorBlur} // sends update on blur event only to prevent network lag
-                        className="w-12 h-8 cursor-pointer rounded"
-                    />
-                </div>
+                {/* Use ColorPicker here */}
+                <ColorPicker username={username} color={myColor} setColor={setMyColor} />
 
                 <form onSubmit={sendMessage} className="flex mt-4 gap-2">
                     <input
