@@ -7,10 +7,15 @@ interface Props {
     username: string;
 }
 
+interface ChatMessage {
+    sender: string,
+    content: string,
+    color: string,
+}
 
 function ChatApp({ username }: Props) {
     const [message, setMessage] = useState(""); //message is empty on mount
-    const [chat, setChat] = useState<string[]>([]); //chat is empty on mount
+    const [chat, setChat] = useState<ChatMessage[]>([]); //chat is empty on mount
     const socketRef = useRef<Socket | null>(null);
 
     useEffect(() => {
@@ -21,8 +26,8 @@ function ChatApp({ username }: Props) {
         });
 
 
-        socketRef.current.on("receive_message", (data: { content: string, sender: string }) => { //this handles incoming messages
-            setChat((prev) => [...prev, `${data.sender}: ${data.content}`]); //adds received message to the chat array, making sure to preserve previous messages
+        socketRef.current.on("receive_message", (data: { content: string, sender: string, color: string }) => { //this handles incoming messages
+            setChat((prev) => [...prev, data]); //adds received message to the chat array, making sure to preserve previous messages
         });
 
         return () => { //cleanup on component unmount
@@ -43,7 +48,7 @@ function ChatApp({ username }: Props) {
     };
 
     return (
-        <div className="min-h-screen bg-zinc-900 text-white flex flex-col items-center px-4 py-6">
+        <div className="min-h-screen bg-zinc-900  flex flex-col items-center px-4 py-6">
             <div className="p-8 font-cobane text-white w-[30%] ">
                 <h1 className="text-3xl font-bold mb-4 flex items-center gap-2">💬 Lounge Chat</h1>
                 <form onSubmit={sendMessage} className="flex mt-4 gap-2">
@@ -64,8 +69,12 @@ function ChatApp({ username }: Props) {
 
                 <ul className="mt-8 space-y-2">
                     {chat.map((msg, index) => (
-                        <li key={index} className="max-w-md bg-zinc-700 rounded-xl px-4 py-2 text-white shadow-sm break-words hover:bg-zinc-700/70 transition-colors">
-                            {msg}
+                        <li
+                            key={index}
+                            className="max-w-md bg-zinc-700 rounded-xl px-4 py-2 shadow-sm break-words hover:bg-zinc-700/70 transition-colors"
+                        >
+                            <span style={{ color: msg.color, fontWeight: "bold" }}>{msg.sender}:</span>{" "}
+                            <span className="text-white">{msg.content}</span>
                         </li>
                     ))}
                 </ul>

@@ -4,12 +4,16 @@ import { Server } from "socket.io"; // for real-time communication between serve
 import cors from "cors"; // to allow requests from frontend (built on React)
 import { Message } from "./models/Message";
 import { connectDB } from "./config/db";
+import userRoutes from "./routes/users";
+import { User } from "./models/User";
 
 
 const app = express(); //creates an express application
 const server = http.createServer(app); //sets up an HTTP server afterwards
 
+app.use(express.json());
 app.use(cors()); //this allows cross-origin requests for frontend
+app.use("/api/user", userRoutes);
 
 
 connectDB().then(() => {
@@ -33,21 +37,47 @@ io.on("connection", (socket) => {  //listens for new connections and logs it
         const saved = await Message.create({
             content: data.content,
             sender: data.sender,
+            color: socket.data.color || "#ffffff",
+
+
         });
-        io.emit("receive_message", saved);
+        io.emit("receive_message", {
+            content: saved.content,
+            sender: saved.sender,
+            color: saved.color,
+
+        });
+
+
     });
 
     socket.on("join", async (username: string) => { //on connecting to server, sends chat history (50 messages)
         socket.data.username = username;
 
         console.log(`Socket ${socket.id} joined the chat as ${username}`); //console broadcast for test purposes/Socket ID
+
+        const user = await User.findOne({ username }); // <-- get user
+        if (user) {
+            socket.data.color = user.color; // <-- set the color on the socket
+            console.log(`Set color for ${username}: ${user.color}`);
+        } else {
+            socket.data.color = "#ffffff"; // fallback
+        }
+
+        
         socket.broadcast.emit("receive_message", { //system broadcasts username joining the chat
             content: `${username} joined the chat.`,
+
             sender: "System"
         });
         const messages = await Message.find().sort({ timestamp: 1 }).limit(50); //limited to 50 messages
         messages.forEach((m) => {
-            socket.emit("receive_message", { content: m.content, sender: m.sender });  //this maps out received messages
+            socket.emit("receive_message", {
+
+                content: m.content,
+                sender: m.sender,
+                color: m.color || "#ffffff"
+            });  //this maps out received messages
         });
     });
 
