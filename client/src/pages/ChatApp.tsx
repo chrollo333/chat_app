@@ -1,85 +1,98 @@
-import { useEffect, useState, useRef } from "react";
-import { io } from "socket.io-client";
-import type { Socket } from "socket.io-client";
-
+import { useEffect, useState } from "react";
+import { useSocket } from "../context/SocketContext";
 
 interface Props {
-    username: string;
+  username: string;
 }
 
 interface ChatMessage {
-    sender: string,
-    content: string,
-    color: string,
+  sender: string;
+  content: string;
+  color: string;
 }
 
 function ChatApp({ username }: Props) {
-    const [message, setMessage] = useState(""); //message is empty on mount
-    const [chat, setChat] = useState<ChatMessage[]>([]); //chat is empty on mount
-    const socketRef = useRef<Socket | null>(null);
+  const socket = useSocket();
 
-    useEffect(() => {
-        socketRef.current = io("http://localhost:3000"); //connection to socket is in useeffect to prevent double render due to react strictmode
+  const [message, setMessage] = useState(""); // current typed message
+  const [chat, setChat] = useState<ChatMessage[]>([]); // chat history
+  const [userColors, setUserColors] = useState<{ [username: string]: string }>({}); // map username -> color
 
-        socketRef.current.on("connect", () => { //wait until socket is connected before sending username
-            socketRef.current?.emit("join", username);
-        });
+  useEffect(() => {
+    if (!socket) return;
 
+    // Join room / announce username
+    socket.emit("join", username);
 
-        socketRef.current.on("receive_message", (data: { content: string, sender: string, color: string }) => { //this handles incoming messages
-            setChat((prev) => [...prev, data]); //adds received message to the chat array, making sure to preserve previous messages
-        });
-
-        return () => { //cleanup on component unmount
-            socketRef.current?.disconnect();
-        };
-    }, [username]);
-
-
-    const sendMessage = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (message.trim() && socketRef.current) {
-            socketRef.current.emit("send_message", {
-                content: message,
-                sender: username,
-            });
-            setMessage("");
-        }
+    // Handler for new incoming messages
+    const handleReceiveMessage = (data: ChatMessage) => {
+      setChat((prev) => [...prev, data]);
+      // Update color map on new message (in case color changed)
+      setUserColors((prev) => ({ ...prev, [data.sender]: data.color }));
     };
 
-    return (
-        <div className="min-h-screen bg-zinc-900  flex flex-col items-center px-4 py-6">
-            <div className="p-8 font-cobane text-white w-[30%] ">
-                <h1 className="text-3xl font-bold mb-4 flex items-center gap-2">💬 Lounge Chat</h1>
-                <form onSubmit={sendMessage} className="flex mt-4 gap-2">
-                    <input
-                        type="text"
-                        value={message}
-                        placeholder="Type a message..."
-                        onChange={(e) => setMessage(e.target.value)}
-                        className="flex-grow bg-zinc-800 text-white placeholder-zinc-400 px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                    />
-                    <button
-                        type="submit"
-                        className=" text-white rounded px-4 py-2 duration-300 bg-emerald-700 hover:bg-emerald-500"
-                    >
-                        Send
-                    </button>
-                </form>
+    // Handler for live color updates
+    const handleUpdateColor = (data: { username: string; color: string }) => {
+      setUserColors((prev) => ({ ...prev, [data.username]: data.color }));
+    };
 
-                <ul className="mt-8 space-y-2">
-                    {chat.map((msg, index) => (
-                        <li
-                            key={index}
-                            className="max-w-md bg-zinc-700 rounded-xl px-4 py-2 shadow-sm break-words hover:bg-zinc-700/70 transition-colors"
-                        >
-                            <span style={{ color: msg.color, fontWeight: "bold" }}>{msg.sender}:</span>{" "}
-                            <span className="text-white">{msg.content}</span>
-                        </li>
-                    ))}
-                </ul>
-            </div>
-        </div>
-    );
+    socket.on("receive_message", handleReceiveMessage);
+    socket.on("update_color", handleUpdateColor);
+
+    return () => {
+      socket.off("receive_message", handleReceiveMessage);
+      socket.off("update_color", handleUpdateColor);
+    };
+  }, [socket, username]);
+
+  const sendMessage = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (message.trim() && socket) {
+      socket.emit("send_message", {
+        content: message,
+        sender: username,
+        color: userColors[username] || "#ffffff", // send your current color along
+      });
+      setMessage("");
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-zinc-900 flex flex-col items-center px-4 py-6">
+      <div className="p-8 font-cobane text-white w-[30%]">
+        <h1 className="text-3xl font-bold mb-4 flex items-center gap-2">💬 Lounge Chat</h1>
+        <form onSubmit={sendMessage} className="flex mt-4 gap-2">
+          <input
+            type="text"
+            value={message}
+            placeholder="Type a message..."
+            onChange={(e) => setMessage(e.target.value)}
+            className="flex-grow bg-zinc-800 text-white placeholder-zinc-400 px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          />
+          <button
+            type="submit"
+            className="text-white rounded px-4 py-2 duration-300 bg-emerald-700 hover:bg-emerald-500"
+          >
+            Send
+          </button>
+        </form>
+
+        <ul className="mt-8 space-y-2">
+          {chat.map((msg, index) => (
+            <li
+              key={index}
+              className="max-w-md bg-zinc-700 rounded-xl px-4 py-2 shadow-sm break-words hover:bg-zinc-700/70 transition-colors"
+            >
+              <span style={{ color: userColors[msg.sender] || msg.color, fontWeight: "bold" }}>
+                {msg.sender}:
+              </span>{" "}
+              <span className="text-white">{msg.content}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
 }
+
 export default ChatApp;

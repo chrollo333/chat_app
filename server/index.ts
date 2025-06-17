@@ -64,7 +64,17 @@ io.on("connection", (socket) => {  //listens for new connections and logs it
             socket.data.color = "#ffffff"; // fallback
         }
 
-        
+
+        //handles color change event
+        socket.on("update_color", async ({ username, color }) => {
+            try {
+                await User.updateOne({ username }, { color });
+                console.log(`🔄 Updated ${username}'s color to ${color}`);
+            } catch (err) {
+                console.error("Error updating color:", err);
+            }
+        });
+
         socket.broadcast.emit("receive_message", { //system broadcasts username joining the chat
             content: `${username} joined the chat.`,
 

@@ -1,17 +1,20 @@
 import { SketchPicker } from 'react-color';
 import { useState } from 'react';
 import axios from "axios";
+import { useSocket } from "../context/SocketContext";
 
 interface Props {
     username: string;
 }
 
-function ColorPicker ({ username }: Props) {
+function ColorPicker({ username }: Props) {
+    const socket = useSocket();
     const [color, setColor] = useState("#ffffff"); //defaults to white
     const [status, setStatus] = useState("");
 
     const handleChangeComplete = async (newColor: any) => {
         setColor(newColor.hex);
+
 
 
         try {
@@ -22,6 +25,9 @@ function ColorPicker ({ username }: Props) {
 
             if (res.status === 200) {
                 setStatus("✅ Color saved!");
+                if (socket) {
+                    socket.emit("update_color", { username, color: newColor.hex });
+                }
             } else {
                 setStatus("❌ Failed to save.");
             }
