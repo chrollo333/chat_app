@@ -29,16 +29,19 @@ const io = new Server(server, {   //socket.io initialization, attaching it to se
 io.on("connection", (socket) => {  //listens for new connections and logs it
     console.log(`New client connected:  ${socket.id}`);
 
-    socket.on("send_message", async(msg: string) => {    //listens for new messages, broadcasts it to all other clients
-        const saved = await Message.create({ content: msg });
-        io.emit("receive_message", saved.content);
+    socket.on("send_message", async(data: { content: string, sender: string }) => {    //listens for new messages, broadcasts it to all other clients
+        const saved = await Message.create({ 
+            content: data.content,
+            sender: data.sender ,
+        });
+        io.emit("receive_message", saved);
     });
 
-    socket.on("join", async () => { //on connecting to server, sends chat history (50 messages)
-        console.log(`Socket ${socket.id} joined the chat`); //this will display twice with different socket IDs due to react strictmode
+    socket.on("join", async (username: string) => { //on connecting to server, sends chat history (50 messages)
+        console.log(`Socket ${socket.id} joined the chat as ${username}`); //this will display twice with different socket IDs due to react strictmode
         const messages = await Message.find().sort({ timestamp: 1}).limit(50); //limited to 50 messages
         messages.forEach((m) => {
-            socket.emit("receive_message", m.content);  //this maps out received messages
+            socket.emit("receive_message", { content: m.content, sender: "System" });  //this maps out received messages
         });
     });
 
