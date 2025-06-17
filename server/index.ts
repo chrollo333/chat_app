@@ -38,6 +38,8 @@ io.on("connection", (socket) => {  //listens for new connections and logs it
     });
 
     socket.on("join", async (username: string) => { //on connecting to server, sends chat history (50 messages)
+        socket.data.username = username;
+
         console.log(`Socket ${socket.id} joined the chat as ${username}`); //console broadcast for test purposes/Socket ID
         socket.broadcast.emit("receive_message", { //system broadcasts username joining the chat
             content: `${username} joined the chat.`,
@@ -51,7 +53,13 @@ io.on("connection", (socket) => {  //listens for new connections and logs it
 
 
     socket.on("disconnect", () => {  //listens for client disconnects then logs it it
-        console.log(`Client disconnected: ${socket.id}`);
+        const username = socket.data.username || "Unknown";
+        socket.broadcast.emit("receive_message", {
+            content: `${username} left the chat.`,
+            sender: "System"
+        })
+
+        console.log(`Client disconnected: ${socket.id} / ${username}`);
     });
 });
 
