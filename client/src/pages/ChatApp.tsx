@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSocket } from "../context/SocketContext";
 import ColorPicker from "../components/ColorPicker";
-
+import Modal from "../components/ColorModal";
 interface Props {
     username: string;
 }
@@ -19,6 +19,8 @@ function ChatApp({ username }: Props) {
     const [chat, setChat] = useState<ChatMessage[]>([]); // chat history
     const [userColors, setUserColors] = useState<{ [username: string]: string }>({}); // map username -> color
     const [myColor, setMyColor] = useState("#ffffff"); // your own color
+    const [modalOpen, setModalOpen] = useState(false); //used for color modal
+
 
     useEffect(() => {
         if (!socket) return;
@@ -70,14 +72,24 @@ function ChatApp({ username }: Props) {
     return (
         <div className="min-h-screen bg-zinc-900 flex flex-col items-center px-4 py-6">
             <div className="p-8 font-cobane text-white w-[30%]">
-                <h1 className="text-3xl font-bold mb-4 flex items-center gap-2">
-                    💬 Lounge Chat
-                </h1>
+                <div className="flex items-center justify-between mb-4">
+                    <h1 className="text-3xl font-bold flex items-center gap-2">
+                        💬 Lounge Chat
+                    </h1>
+                    <button
+                        onClick={() => setModalOpen(true)}
+                        className="bg-emerald-700 hover:bg-emerald-500 text-white rounded px-3 py-1 hover:scale-120 duration-500"
+                        aria-label="Open color picker"
+                    >
+                        🎨
+                    </button>
+                </div>
 
-                {/* Use ColorPicker here */}
-                <ColorPicker username={username} color={myColor} setColor={setMyColor} />
+                <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)}>
+                    <ColorPicker username={username} color={myColor} setColor={setMyColor} />
+                </Modal>
 
-                <form onSubmit={sendMessage} className="flex mt-4 gap-2">
+                <form onSubmit={sendMessage} className="flex mt-4 gap-4">
                     <input
                         type="text"
                         value={message}
@@ -87,7 +99,7 @@ function ChatApp({ username }: Props) {
                     />
                     <button
                         type="submit"
-                        className="text-white rounded px-4 py-2 duration-300 bg-emerald-700 hover:bg-emerald-500"
+                        className="text-white rounded px-4 py-2 duration-500 bg-emerald-700 hover:bg-emerald-500 hover:scale-120"
                     >
                         Send
                     </button>
