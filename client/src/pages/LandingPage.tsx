@@ -12,6 +12,7 @@ export default function LandingPage({ onJoin }: Props) {
         e.preventDefault();
         const trimmed = username.trim(); //removes whitespace characters
         if (trimmed) {
+            localStorage.setItem("username", username);
             onJoin(trimmed);
         }
     };

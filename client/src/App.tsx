@@ -3,7 +3,7 @@ import ChatApp from "./pages/ChatApp";
 import LandingPage from "./pages/LandingPage";
 
 function App() {
-  const [username, setUsername] = useState<string | null>(null);
+const [username, setUsername] = useState(() => localStorage.getItem("username") || "");
 
   return (
     <>
