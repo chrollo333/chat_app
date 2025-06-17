@@ -17,9 +17,9 @@ function ChatApp({ username }: Props) {
         socketRef.current = io("http://localhost:3000"); //connection to socket is in useeffect to prevent double render due to react strictmode
 
         socketRef.current.on("connect", () => { //wait until socket is connected before sending username
-          socketRef.current?.emit("join", username);  
+            socketRef.current?.emit("join", username);
         });
-        
+
 
         socketRef.current.on("receive_message", (data: { content: string, sender: string }) => { //this handles incoming messages
             setChat((prev) => [...prev, `${data.sender}: ${data.content}`]); //adds received message to the chat array, making sure to preserve previous messages
@@ -43,31 +43,33 @@ function ChatApp({ username }: Props) {
     };
 
     return (
-        <div className="p-8 font-cobane">
-            <h1 className="text-2xl font-bold mb-4">💬 Lounge Chat</h1>
-            <form onSubmit={sendMessage} className="flex gap-4">
-                <input
-                    type="text"
-                    value={message}
-                    placeholder="Type a message..."
-                    onChange={(e) => setMessage(e.target.value)}
-                    className="border p-2 w-80 rounded"
-                />
-                <button
-                    type="submit"
-                    className="bg-blue-500 hover:bg-blue-600 text-white rounded px-4 py-2"
-                >
-                    Send
-                </button>
-            </form>
+        <div className="min-h-screen bg-zinc-900 text-white flex flex-col items-center px-4 py-6">
+            <div className="p-8 font-cobane text-white w-[30%] ">
+                <h1 className="text-3xl font-bold mb-4 flex items-center gap-2">💬 Lounge Chat</h1>
+                <form onSubmit={sendMessage} className="flex mt-4 gap-2">
+                    <input
+                        type="text"
+                        value={message}
+                        placeholder="Type a message..."
+                        onChange={(e) => setMessage(e.target.value)}
+                        className="flex-grow bg-zinc-800 text-white placeholder-zinc-400 px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                    <button
+                        type="submit"
+                        className=" text-white rounded px-4 py-2 duration-300 bg-emerald-700 hover:bg-emerald-500"
+                    >
+                        Send
+                    </button>
+                </form>
 
-            <ul className="mt-8 space-y-2">
-                {chat.map((msg, index) => (
-                    <li key={index} className="bg-gray-100 p-2 rounded">
-                        {msg}
-                    </li>
-                ))}
-            </ul>
+                <ul className="mt-8 space-y-2">
+                    {chat.map((msg, index) => (
+                        <li key={index} className="max-w-md bg-zinc-700 rounded-xl px-4 py-2 text-white shadow-sm break-words hover:bg-zinc-700/70 transition-colors">
+                            {msg}
+                        </li>
+                    ))}
+                </ul>
+            </div>
         </div>
     );
 }

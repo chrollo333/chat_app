@@ -19,19 +19,19 @@ export default function LandingPage({ onJoin }: Props) {
 
 
     return (
-        <div className="h-screen flex flex-col items-center justify-center bg-gradient-to-br from-purple-600 to-indigo-700 text-white font-cobane">
+        <div className="h-screen flex flex-col items-center justify-center bg-gradient-to-br from-emerald-500 to-emerald-700 text-white font-cobane">
             <h1 className="text-4xl font-bold mb-6">💬 Welcome to Lounge Chat</h1>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4 ">
                 <input
                     type="text"
-                    placeholder="Enter your username"
-                    className="p-3 rounded text-black w-72"
                     value={username}
+                    placeholder="Enter your username"
                     onChange={(e) => setUsername(e.target.value)}
+                    className="p-3 text-white w-72 focus:outline-none focus:ring-2 focus:ring-white rounded" 
                 />
                 <button
                     type="submit"
-                    className="bg-white text-purple-700 font-semibold px-6 py-2 rounded hover:bg-purple-200"
+                    className="bg-white text-emerald-600 font-semibold px-6 py-2 rounded hover:bg-emerald-100 hover:text-emerald-700 ml-5 transition-colors"
                 >
                     Join Chat
                 </button>

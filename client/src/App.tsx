@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import ChatApp from "./pages/ChatApp";
 import LandingPage from "./pages/LandingPage";
+import { ChromePicker } from "react-color";
 
 function App() {
   const [username, setUsername] = useState<string | null>(null);
