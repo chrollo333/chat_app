@@ -7,7 +7,6 @@ import { connectDB } from "./config/db";
 import userRoutes from "./routes/users";
 import { User } from "./models/User";
 
-
 const app = express(); //creates an express application
 const server = http.createServer(app); //sets up an HTTP server afterwards
 
@@ -15,9 +14,8 @@ app.use(express.json());
 app.use(cors()); //this allows cross-origin requests for frontend
 app.use("/api/user", userRoutes);
 
-
 connectDB().then(() => {
-    // only starts the server on succesful 
+    // only starts the server on successful 
     server.listen(3000, () => {
         console.log("🚀 Server running on http://localhost:3000");
     });
@@ -38,17 +36,12 @@ io.on("connection", (socket) => {  //listens for new connections and logs it
             content: data.content,
             sender: data.sender,
             color: socket.data.color || "#ffffff",
-
-
         });
         io.emit("receive_message", {
             content: saved.content,
             sender: saved.sender,
             color: saved.color,
-
         });
-
-
     });
 
     socket.on("join", async (username: string) => { //on connecting to server, sends chat history (50 messages)
@@ -59,31 +52,36 @@ io.on("connection", (socket) => {  //listens for new connections and logs it
         const user = await User.findOne({ username }); // <-- get user
         if (user) {
             socket.data.color = user.color; // <-- set the color on the socket
+            socket.emit("color_updated", { username, color: user.color });
             console.log(`Set color for ${username}: ${user.color}`);
         } else {
             socket.data.color = "#ffffff"; // fallback
         }
 
-
-        //handles color change event
+        // listen for color updates from this socket only
         socket.on("update_color", async ({ username, color }) => {
             try {
                 await User.updateOne({ username }, { color });
+                socket.data.color = color;  // update color on this socket immediately
+
+                // Broadcast color update to all other clients so they update usernames in real-time
+                io.emit("color_updated", { username, color });
+
                 console.log(`🔄 Updated ${username}'s color to ${color}`);
             } catch (err) {
                 console.error("Error updating color:", err);
             }
         });
 
-        socket.broadcast.emit("receive_message", { //system broadcasts username joining the chat
+        socket.broadcast.emit("receive_message", { //notifies when somebody joins
             content: `${username} joined the chat.`,
-
-            sender: "System"
+            sender: "System",
+            color: "#888888", // system messages  have a gray color
         });
+
         const messages = await Message.find().sort({ timestamp: 1 }).limit(50); //limited to 50 messages
         messages.forEach((m) => {
             socket.emit("receive_message", {
-
                 content: m.content,
                 sender: m.sender,
                 color: m.color || "#ffffff"
@@ -91,15 +89,14 @@ io.on("connection", (socket) => {  //listens for new connections and logs it
         });
     });
 
-
     socket.on("disconnect", () => {  //listens for client disconnects then logs it it
         const username = socket.data.username || "Unknown";
         socket.broadcast.emit("receive_message", {
             content: `${username} left the chat.`,
-            sender: "System"
-        })
+            sender: "System",
+            color: "#888888",
+        });
 
         console.log(`Client disconnected: ${socket.id} / ${username}`);
     });
 });
-

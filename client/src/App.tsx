@@ -19,7 +19,6 @@ function App() {
       ) : (
         <>
           <ChatApp username={username} />
-          <ColorPicker username={username} />
         </>
       )}
 

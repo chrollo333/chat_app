@@ -2,97 +2,137 @@ import { useEffect, useState } from "react";
 import { useSocket } from "../context/SocketContext";
 
 interface Props {
-  username: string;
+    username: string;
 }
 
 interface ChatMessage {
-  sender: string;
-  content: string;
-  color: string;
+    sender: string;
+    content: string;
+    color: string;
 }
 
 function ChatApp({ username }: Props) {
-  const socket = useSocket();
+    const socket = useSocket();
 
-  const [message, setMessage] = useState(""); // current typed message
-  const [chat, setChat] = useState<ChatMessage[]>([]); // chat history
-  const [userColors, setUserColors] = useState<{ [username: string]: string }>({}); // map username -> color
+    const [message, setMessage] = useState(""); // current typed message
+    const [chat, setChat] = useState<ChatMessage[]>([]); // chat history
+    const [userColors, setUserColors] = useState<{ [username: string]: string }>({}); // map username -> color
+    const [myColor, setMyColor] = useState("#ffffff"); // your own color
 
-  useEffect(() => {
-    if (!socket) return;
+    useEffect(() => {
+        if (!socket) return;
 
-    // Join room / announce username
-    socket.emit("join", username);
+        // join room / announce username
+        socket.emit("join", username);
 
-    // Handler for new incoming messages
-    const handleReceiveMessage = (data: ChatMessage) => {
-      setChat((prev) => [...prev, data]);
-      // Update color map on new message (in case color changed)
-      setUserColors((prev) => ({ ...prev, [data.sender]: data.color }));
+        const handleReceiveMessage = (data: ChatMessage) => {
+            setChat((prev) => [...prev, data]);
+            setUserColors((prev) => ({ ...prev, [data.sender]: data.color }));
+        };
+
+        const handleColorUpdated = (data: { username: string; color: string }) => {
+            setUserColors((prev) => ({ ...prev, [data.username]: data.color }));
+
+            if (data.username === username) {
+                setMyColor(data.color);
+            }
+
+            setChat((prevChat) =>
+                prevChat.map((msg) =>
+                    msg.sender === data.username ? { ...msg, color: data.color } : msg
+                )
+            );
+        };
+
+        socket.on("receive_message", handleReceiveMessage);
+        socket.on("color_updated", handleColorUpdated);
+
+        return () => {
+            socket.off("receive_message", handleReceiveMessage);
+            socket.off("color_updated", handleColorUpdated);
+        };
+    }, [socket, username]);
+
+    const sendMessage = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (message.trim() && socket) {
+            socket.emit("send_message", {
+                content: message,
+                sender: username,
+                color: myColor,
+            });
+            setMessage("");
+        }
     };
 
-    // Handler for live color updates
-    const handleUpdateColor = (data: { username: string; color: string }) => {
-      setUserColors((prev) => ({ ...prev, [data.username]: data.color }));
+    // When user changes color, emit update_color to server
+    const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setMyColor(e.target.value); // update color locally to reflect UI immediately
     };
 
-    socket.on("receive_message", handleReceiveMessage);
-    socket.on("update_color", handleUpdateColor);
-
-    return () => {
-      socket.off("receive_message", handleReceiveMessage);
-      socket.off("update_color", handleUpdateColor);
+    const handleColorBlur = () => {
+        if (socket) {
+            socket.emit("update_color", { username, color: myColor }); // send update only when user leaves the input to prevent network lag
+        }
     };
-  }, [socket, username]);
 
-  const sendMessage = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (message.trim() && socket) {
-      socket.emit("send_message", {
-        content: message,
-        sender: username,
-        color: userColors[username] || "#ffffff", // send your current color along
-      });
-      setMessage("");
-    }
-  };
 
-  return (
-    <div className="min-h-screen bg-zinc-900 flex flex-col items-center px-4 py-6">
-      <div className="p-8 font-cobane text-white w-[30%]">
-        <h1 className="text-3xl font-bold mb-4 flex items-center gap-2">💬 Lounge Chat</h1>
-        <form onSubmit={sendMessage} className="flex mt-4 gap-2">
-          <input
-            type="text"
-            value={message}
-            placeholder="Type a message..."
-            onChange={(e) => setMessage(e.target.value)}
-            className="flex-grow bg-zinc-800 text-white placeholder-zinc-400 px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-          />
-          <button
-            type="submit"
-            className="text-white rounded px-4 py-2 duration-300 bg-emerald-700 hover:bg-emerald-500"
-          >
-            Send
-          </button>
-        </form>
+    return (
+        <div className="min-h-screen bg-zinc-900 flex flex-col items-center px-4 py-6">
+            <div className="p-8 font-cobane text-white w-[30%]">
+                <h1 className="text-3xl font-bold mb-4 flex items-center gap-2">
+                    💬 Lounge Chat
+                </h1>
 
-        <ul className="mt-8 space-y-2">
-          {chat.map((msg, index) => (
-            <li
-              key={index}
-              className="max-w-md bg-zinc-700 rounded-xl px-4 py-2 shadow-sm break-words hover:bg-zinc-700/70 transition-colors"
-            >
-              <span style={{ color: userColors[msg.sender] || msg.color, fontWeight: "bold" }}>
-                {msg.sender}:
-              </span>{" "}
-              <span className="text-white">{msg.content}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
-  );
+                {/* Color picker */}
+                <div className="mb-4">
+                    <label htmlFor="colorPicker" className="mr-2">
+                        Your Chat Color:
+                    </label>
+                    <input
+                        type="color"
+                        id="colorPicker"
+                        value={myColor}
+                        onChange={handleColorChange} //this updates local state immediately
+                        onBlur={handleColorBlur} // sends update on blur event only to prevent network lag
+                        className="w-12 h-8 cursor-pointer rounded"
+                    />
+                </div>
+
+                <form onSubmit={sendMessage} className="flex mt-4 gap-2">
+                    <input
+                        type="text"
+                        value={message}
+                        placeholder="Type a message..."
+                        onChange={(e) => setMessage(e.target.value)}
+                        className="flex-grow bg-zinc-800 text-white placeholder-zinc-400 px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                    <button
+                        type="submit"
+                        className="text-white rounded px-4 py-2 duration-300 bg-emerald-700 hover:bg-emerald-500"
+                    >
+                        Send
+                    </button>
+                </form>
+
+                <ul className="mt-8 space-y-2">
+                    {chat.map((msg, index) => (
+                        <li
+                            key={index}
+                            className="max-w-md bg-zinc-700 rounded-xl px-4 py-2 shadow-sm break-words hover:bg-zinc-700/70 transition-colors"
+                        >
+                            <span
+                                style={{ color: userColors[msg.sender] || msg.color, fontWeight: "bold" }}
+                            >
+                                {msg.sender}:
+                            </span>{" "}
+                            <span className="text-white">{msg.content}</span>
+                        </li>
+                    ))}
+                </ul>
+            </div>
+        </div>
+    );
 }
 
 export default ChatApp;
