@@ -14,14 +14,18 @@ function ChatApp({ username }: Props) {
     const socketRef = useRef<Socket | null>(null);
 
     useEffect(() => {
-        socketRef.current = io("http://localhost:3000"); //in useeffect to prevent double render due to react strictmode
-        socketRef.current.emit("join", username);
+        socketRef.current = io("http://localhost:3000"); //connection to socket is in useeffect to prevent double render due to react strictmode
 
-        socketRef.current.on("receive_message", (data: { content: string, sender: string }) => { //event listener for messages from server
+        socketRef.current.on("connect", () => { //wait until socket is connected before sending username
+          socketRef.current?.emit("join", username);  
+        });
+        
+
+        socketRef.current.on("receive_message", (data: { content: string, sender: string }) => { //this handles incoming messages
             setChat((prev) => [...prev, `${data.sender}: ${data.content}`]); //adds received message to the chat array, making sure to preserve previous messages
         });
 
-        return () => {
+        return () => { //cleanup on component unmount
             socketRef.current?.disconnect();
         };
     }, [username]);
