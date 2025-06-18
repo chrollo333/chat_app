@@ -31,7 +31,7 @@ export default function LandingPage({ onJoin }: Props) {
                 />
                 <button
                     type="submit"
-                    className="bg-white text-emerald-600 font-semibold px-6 py-2 rounded hover:bg-emerald-100 hover:text-emerald-700 ml-5 transition-colors"
+                    className="bg-white text-emerald-600 font-semibold px-6 py-2 rounded hover:bg-emerald-100 hover:text-emerald-700 ml-5 hover:scale-120 duration-500"
                 >
                     Join Chat
                 </button>
