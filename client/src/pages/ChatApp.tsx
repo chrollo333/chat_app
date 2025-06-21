@@ -19,7 +19,7 @@ function ChatApp({ username }: Props) {
     const [chat, setChat] = useState<ChatMessage[]>([]); // chat history
     const [userColors, setUserColors] = useState<{ [username: string]: string }>({}); // map username -> color
     const [myColor, setMyColor] = useState("#ffffff"); // your own color
-    const [modalOpen, setModalOpen] = useState(false); //used for color modal
+    const [modalOpen, setModalOpen] = useState(false); //color modal hook
 
 
     useEffect(() => {

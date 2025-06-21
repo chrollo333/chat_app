@@ -1,4 +1,4 @@
-# LoungeChat 🎉
+# LoungeChat
 
 **LoungeChat** is a real-time web chat application built with **React**, **TypeScript**, **Tailwind CSS**, **Node.js** (Express), and **Socket.IO**.
 My plan is for it to be a scaled down amalgamation of watch2together and "listen2gether" (Spotify listening along integration) for small casual groups with different themes for the chat rooms.
